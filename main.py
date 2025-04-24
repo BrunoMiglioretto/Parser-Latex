@@ -170,6 +170,14 @@ class LexicalAnalyser:
         return self.symbols[self.character_position + 1]
 
 
-c = r"\neg bruno"
-analyser = LexicalAnalyser(c)
-print(analyser.execute())
+with open("examples.txt") as f:
+    example_count = f.readline()
+    examples = f.readlines()
+
+for example in examples:
+    print(example)
+    analyser = LexicalAnalyser(example)
+    print(analyser.execute())
+
+
+
