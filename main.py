@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 from typing import Any
 
@@ -24,27 +25,25 @@ class DeterministicFiniteAutomata:
         self.transactions = transactions
         self.initial_state = initial_state
         self.final_states = final_states
+        self.state = self.initial_state
 
-    def validate_word_symbols_in_alphabet(self, word):
-        for symbol in word:
-            if symbol not in self.alphabet:
-                raise Exception(f'Invalid symbol "{symbol}".')
+    @property
+    def in_final_state(self) -> bool:
+        return self.state in self.final_states
 
-    def run(self, word: str) -> bool:
-        self.validate_word_symbols_in_alphabet(word)
+    def validate_symbol_symbols_in_alphabet(self, symbol):
+        if symbol not in self.alphabet:
+            raise Exception(f'Invalid symbol "{symbol}".')
 
-        state = self.initial_state
-        symbols = list(word)
-
-        while symbols:
-            try:
-                for transaction in self.transactions:
-                    if transaction[0] == state and transaction[1](symbols.pop(0)):
-                        state = transaction[2]
-                        break
-            except KeyError:
-                break
-        return state in self.final_states
+    def execute(self, symbol: str):
+        self.validate_symbol_symbols_in_alphabet(symbol)
+        try:
+            for transaction in self.transactions:
+                if transaction[0] == self.state and transaction[1](symbol):
+                    self.state = transaction[2]
+                    break
+        except KeyError:
+            pass
 
 
 def build_full_word_transactions(word: str) -> tuple[set[tuple[int, Any, int]], int]:
@@ -56,7 +55,10 @@ def build_full_word_transactions(word: str) -> tuple[set[tuple[int, Any, int]], 
         state += 1
         final_state += 1
 
-    transactions.append((final_state, lambda x: True, final_state + 1))
+    transactions.append((final_state, lambda x: x == " ", final_state + 1))
+    transactions.append((final_state, lambda x: x != " ", final_state + 2))
+
+    final_state += 1
     return set(transactions), final_state
 
 
@@ -76,7 +78,7 @@ def build_patterns():
         (
             Lexeme.OPEN_PARENTHESIS,
             DeterministicFiniteAutomata(
-                transactions={(0, lambda x: x == "(", 1), (1, lambda x: x != "(", 2)},
+                transactions={(0, lambda x: x == "(", 1), (0, lambda x: x != "(", 2)},
                 initial_state=0,
                 final_states={1},
             ),
@@ -84,7 +86,7 @@ def build_patterns():
         (
             Lexeme.CLOSE_PARENTHESIS,
             DeterministicFiniteAutomata(
-                transactions={(0, lambda x: x == ")", 1), (1, lambda x: x != ")", 2)},
+                transactions={(0, lambda x: x == ")", 1), (0, lambda x: x != ")", 2)},
                 initial_state=0,
                 final_states={1},
             ),
@@ -138,48 +140,36 @@ def build_patterns():
 
 
 class LexicalAnalyser:
-    def __init__(self):
+    def __init__(self, content: str):
         self.patterns = build_patterns()
+        self.content = content
+        self.symbols = list(content)
+        self.character_position = 0
 
-    def execute(self, content: str) -> list[tuple[Lexeme, str]]:
+    @property
+    def end_of_file(self):
+        return self.character_position - 1 == len(self.content)
+
+    def execute(self) -> list[tuple[Lexeme, str]]:
         tokens: list[tuple[Lexeme, str]] = []
 
-        word = ""
-        while content:
-            possible_patterns = self.patterns
-            try:
-                while possible_patterns:
-                    last_word = word
-                    last_content = content
-                    lasts_patterns = possible_patterns
-
-                    word += content[0]
-                    content = content[1:]
-
-                    possible_patterns = self.execute_patterns(word, possible_patterns)
-                    if not possible_patterns:
-                        tokens.append((lasts_patterns[0][0], last_word))
-                        word = ""
-                        content = last_content
-
-                    if not content:
-                        if possible_patterns:
-                            tokens.append((possible_patterns[0][0], word))
-            except IndexError:
-                pass
+        while self.end_of_file:
+            tokens.append(self.get_next_token())
 
         return tokens
 
-    def execute_patterns(self, word: str, patterns) -> list[tuple[Lexeme, set]]:
-        successfully_patterns = []
+    def get_next_token(self) -> tuple[Lexeme, str]:
+        pass
 
-        for pattern in patterns:
-            if pattern[1].run(word):
-                successfully_patterns.append(pattern)
+    def next_character(self) -> str:
+        char = self.symbols[self.character_position]
+        self.character_position += 1
+        return char
 
-        return successfully_patterns
+    def peek(self) -> str:
+        return self.symbols[self.character_position + 1]
 
 
-content = "(asdf)"
-analyser = LexicalAnalyser()
-print(analyser.execute(content))
+c = r"\neg bruno"
+analyser = LexicalAnalyser(c)
+print(analyser.execute())
