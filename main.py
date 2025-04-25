@@ -2,7 +2,7 @@ import logging
 from enum import Enum
 from typing import Any
 
-ALPHABET = list(r"abcdefghijklmnopqrstuvwxyz0123456789\()- ")
+ALPHABET = list(r"abcdefghijklmnopqrstuvwxyz0123456789\() ")
 
 
 class Lexeme(Enum):
@@ -60,16 +60,17 @@ def build_patterns():
                     (1, lambda x: x == "r", 2),
                     (2, lambda x: x == "u", 3),
                     (3, lambda x: x == "e", 4),
+                    (4, lambda x: True, 5),
                     # false
                     (0, lambda x: x == "f", 6),
                     (6, lambda x: x == "a", 7),
                     (7, lambda x: x == "l", 8),
                     (8, lambda x: x == "s", 9),
                     (9, lambda x: x == "e", 10),
-                    (10, lambda x: x == "e", 11),
+                    (10, lambda x: True, 11),
                 },
                 initial_state=0,
-                final_states={4, 11},
+                final_states={4, 10},
             ),
         ),
         (
@@ -77,18 +78,23 @@ def build_patterns():
             DeterministicFiniteAutomata(
                 transactions={
                     (0, lambda x: x in "0123456789", 1),
-                    (1, lambda x: x == " " or x == ")", 2),
                     (1, lambda x: x in "abcdefghijklmnopqrstuvwxyz0123456789", 1),
-                    (0, lambda x: x not in "0123456789", 3),
+                    (1, lambda x: x == " ", 999),
+                    (1, lambda x: x not in "abcdefghijklmnopqrstuvwxyz0123456789", 999),
+                    (0, lambda x: x not in "abcdefghijklmnopqrstuvwxyz0123456789", 999),
                 },
                 initial_state=0,
-                final_states={2},
+                final_states={1},
             ),
         ),
         (
             Lexeme.OPEN_PARENTHESIS,
             DeterministicFiniteAutomata(
-                transactions={(0, lambda x: x == "(", 1), (0, lambda x: x != "(", 2)},
+                transactions={
+                    (0, lambda x: x == "(", 1),
+                    (1, lambda x: True, 999),
+                    (0, lambda x: x != "(", 999)
+                },
                 initial_state=0,
                 final_states={1},
             ),
@@ -96,7 +102,11 @@ def build_patterns():
         (
             Lexeme.CLOSE_PARENTHESIS,
             DeterministicFiniteAutomata(
-                transactions={(0, lambda x: x == ")", 1), (0, lambda x: x != ")", 2)},
+                transactions={
+                    (0, lambda x: x == ")", 1),
+                    (1, lambda x: True, 999),
+                    (0, lambda x: x != ")", 999)
+                },
                 initial_state=0,
                 final_states={1},
             ),
@@ -109,6 +119,7 @@ def build_patterns():
                     (1, lambda x: x == "n", 2),
                     (2, lambda x: x == "e", 3),
                     (3, lambda x: x == "g", 4),
+                    (4, lambda x: True, 999),
                 },
                 initial_state=0,
                 final_states={4},
@@ -125,10 +136,12 @@ def build_patterns():
                     (3, lambda x: x == "d", 4),
                     (4, lambda x: x == "g", 5),
                     (5, lambda x: x == "e", 6),
+                    (6, lambda x: True, 999),
                     # vee
                     (1, lambda x: x == "v", 7),
                     (7, lambda x: x == "e", 8),
                     (8, lambda x: x == "e", 9),
+                    (9, lambda x: True, 999),
                     # rightarrow
                     (1, lambda x: x == "r", 10),
                     (10, lambda x: x == "i", 11),
@@ -140,6 +153,7 @@ def build_patterns():
                     (16, lambda x: x == "r", 17),
                     (17, lambda x: x == "o", 18),
                     (18, lambda x: x == "w", 19),
+                    (20, lambda x: True, 999),
                     # leftrightarrow
                     (1, lambda x: x == "l", 20),
                     (20, lambda x: x == "e", 21),
@@ -155,6 +169,7 @@ def build_patterns():
                     (30, lambda x: x == "r", 31),
                     (31, lambda x: x == "o", 32),
                     (32, lambda x: x == "w", 33),
+                    (33, lambda x: True, 999),
                 },
                 initial_state=0,
                 final_states={6, 9, 19, 33},
