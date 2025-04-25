@@ -49,20 +49,6 @@ class DeterministicFiniteAutomata:
         self.state = self.initial_state
 
 
-def build_full_word_transactions(word: str) -> tuple[set[tuple[int, Any, int]], int]:
-    state = 0
-    final_state = state + 1
-    transactions = []
-    for symbol in word:
-        transactions.append((state, lambda x: x == symbol, final_state))
-        state += 1
-        final_state += 1
-
-    transactions.append((state, lambda x: x == "-", final_state))
-
-    return set(transactions), final_state
-
-
 def build_patterns():
     patterns = [
         (
