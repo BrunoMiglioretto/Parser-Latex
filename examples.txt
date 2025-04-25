@@ -1,4 +1,4 @@
 3
-(P true \neg Q) \rightarrow (R \wedge S)
-\neg (P \wedge Q)
-P \leftrightarrow Q
+(2P true true \neg 2Q) \rightarrow (2R \wedge 3S)
+\neg (1P \wedge 2Q)
+1P \leftrightarrow 2Q

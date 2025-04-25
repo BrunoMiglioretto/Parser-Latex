@@ -2,7 +2,7 @@ import logging
 from enum import Enum
 from typing import Any
 
-ALPHABET = list(r"abcdefghijklmnopqrstuvwxyz0123456789\() ")
+ALPHABET = list(r"abcdefghijklmnopqrstuvwxyz0123456789\()- ")
 
 
 class Lexeme(Enum):
@@ -58,36 +58,42 @@ def build_full_word_transactions(word: str) -> tuple[set[tuple[int, Any, int]], 
         state += 1
         final_state += 1
 
-    transactions.append((final_state - 1, lambda x: x == " ", final_state))
-    transactions.append((final_state - 1, lambda x: x != " ", final_state + 1))
+    transactions.append((state, lambda x: x == "-", final_state))
 
     return set(transactions), final_state
 
 
 def build_patterns():
-    patterns = []
-
-    for word in ["true", "false"]:
-        transactions, final_state = build_full_word_transactions(word)
-        patterns.append(
-            (
-                Lexeme.CONSTANT,
-                DeterministicFiniteAutomata(
-                    transactions=transactions,
-                    initial_state=0,
-                    final_states={final_state},
-                ),
-            )
-        )
-
-    patterns += [
+    patterns = [
+        (
+            Lexeme.CONSTANT,
+            DeterministicFiniteAutomata(
+                transactions={
+                    # true
+                    (0, lambda x: x == "t", 1),
+                    (1, lambda x: x == "r", 2),
+                    (2, lambda x: x == "u", 3),
+                    (3, lambda x: x == "e", 4),
+                    # false
+                    (0, lambda x: x == "f", 6),
+                    (6, lambda x: x == "a", 7),
+                    (7, lambda x: x == "l", 8),
+                    (8, lambda x: x == "s", 9),
+                    (9, lambda x: x == "e", 10),
+                    (10, lambda x: x == "e", 11),
+                },
+                initial_state=0,
+                final_states={4, 11},
+            ),
+        ),
         (
             Lexeme.PROPOSITION,
             DeterministicFiniteAutomata(
                 transactions={
-                    (0, lambda x: x in "abcdefghijklmnopqrstuvwxyz0123456789", 1),
+                    (0, lambda x: x in "0123456789", 1),
                     (1, lambda x: x == " " or x == ")", 2),
-                    (0, lambda x: x not in "abcdefghijklmnopqrstuvwxyz0123456789", 3),
+                    (1, lambda x: x in "abcdefghijklmnopqrstuvwxyz0123456789", 1),
+                    (0, lambda x: x not in "0123456789", 3),
                 },
                 initial_state=0,
                 final_states={2},
@@ -109,38 +115,66 @@ def build_patterns():
                 final_states={1},
             ),
         ),
+        (
+            Lexeme.UNARY_OPERATOR,
+            DeterministicFiniteAutomata(
+                transactions={
+                    (0, lambda x: x == "\\", 1),
+                    (1, lambda x: x == "n", 2),
+                    (2, lambda x: x == "e", 3),
+                    (3, lambda x: x == "g", 4),
+                },
+                initial_state=0,
+                final_states={4},
+            ),
+        ),
+        (
+            Lexeme.BINARY_OPERATOR,
+            DeterministicFiniteAutomata(
+                transactions={
+                    (0, lambda x: x == "\\", 1),
+                    # wedge
+                    (1, lambda x: x == "w", 2),
+                    (2, lambda x: x == "e", 3),
+                    (3, lambda x: x == "d", 4),
+                    (4, lambda x: x == "g", 5),
+                    (5, lambda x: x == "e", 6),
+                    # vee
+                    (1, lambda x: x == "v", 7),
+                    (7, lambda x: x == "e", 8),
+                    (8, lambda x: x == "e", 9),
+                    # rightarrow
+                    (1, lambda x: x == "r", 10),
+                    (10, lambda x: x == "i", 11),
+                    (11, lambda x: x == "g", 12),
+                    (12, lambda x: x == "h", 13),
+                    (13, lambda x: x == "t", 14),
+                    (14, lambda x: x == "a", 15),
+                    (15, lambda x: x == "r", 16),
+                    (16, lambda x: x == "r", 17),
+                    (17, lambda x: x == "o", 18),
+                    (18, lambda x: x == "w", 19),
+                    # leftrightarrow
+                    (1, lambda x: x == "l", 20),
+                    (20, lambda x: x == "e", 21),
+                    (21, lambda x: x == "f", 22),
+                    (22, lambda x: x == "t", 23),
+                    (23, lambda x: x == "r", 24),
+                    (24, lambda x: x == "i", 25),
+                    (25, lambda x: x == "g", 26),
+                    (26, lambda x: x == "h", 27),
+                    (27, lambda x: x == "t", 28),
+                    (28, lambda x: x == "a", 29),
+                    (29, lambda x: x == "r", 30),
+                    (30, lambda x: x == "r", 31),
+                    (31, lambda x: x == "o", 32),
+                    (32, lambda x: x == "w", 33),
+                },
+                initial_state=0,
+                final_states={6, 9, 19, 33},
+            ),
+        )
     ]
-
-    for word in ["\\neg"]:
-        transactions, final_state = build_full_word_transactions(word)
-        patterns.append(
-            (
-                Lexeme.UNARY_OPERATOR,
-                DeterministicFiniteAutomata(
-                    transactions=transactions,
-                    initial_state=0,
-                    final_states={final_state},
-                ),
-            )
-        )
-
-    for word in [
-        "\\wedge",
-        "\\vee",
-        "\\rightarrow",
-        "\\leftrightarrow",
-    ]:
-        transactions, final_state = build_full_word_transactions(word)
-        patterns.append(
-            (
-                Lexeme.BINARY_OPERATOR,
-                DeterministicFiniteAutomata(
-                    transactions=transactions,
-                    initial_state=0,
-                    final_states={final_state},
-                ),
-            )
-        )
 
     return patterns
 
@@ -160,7 +194,6 @@ class LexicalAnalyser:
         word = ""
         while not self.end_of_file:
             symbol = self.next_character()
-            print(symbol)
             word += symbol
             for pattern in self.patterns:
                 dfa = pattern[1]
