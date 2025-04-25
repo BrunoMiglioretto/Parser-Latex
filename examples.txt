@@ -1,4 +1,4 @@
 3
-(2p true true \neg 2q) \rightarrow (2r \wedge 3s)
-\neg (1P \wedge 2Q)
-1P \leftrightarrow 2Q
+(2asdf true true \neg 2) \rightarrow (2 \wedge 3)
+\neg (1KJH \wedge 2)
+1 \leftrightarrow 2

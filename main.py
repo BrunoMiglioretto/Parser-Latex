@@ -37,13 +37,10 @@ class DeterministicFiniteAutomata:
 
     def execute(self, symbol: str):
         self.validate_symbol_symbols_in_alphabet(symbol)
-        try:
-            for transaction in self.transactions:
-                if transaction[0] == self.state and transaction[1](symbol):
-                    self.state = transaction[2]
-                    break
-        except KeyError:
-            pass
+        for transaction in self.transactions:
+            if transaction[0] == self.state and transaction[1](symbol):
+                self.state = transaction[2]
+                break
 
     def reset(self):
         self.state = self.initial_state
@@ -55,6 +52,7 @@ def build_patterns():
             Lexeme.CONSTANT,
             DeterministicFiniteAutomata(
                 transactions={
+                    (0, lambda x: x not in "tf", 999),
                     # true
                     (0, lambda x: x == "t", 1),
                     (1, lambda x: x == "r", 2),
@@ -78,10 +76,9 @@ def build_patterns():
             DeterministicFiniteAutomata(
                 transactions={
                     (0, lambda x: x in "0123456789", 1),
-                    (1, lambda x: x in "abcdefghijklmnopqrstuvwxyz0123456789", 1),
-                    (1, lambda x: x == " ", 999),
-                    (1, lambda x: x not in "abcdefghijklmnopqrstuvwxyz0123456789", 999),
                     (0, lambda x: x not in "abcdefghijklmnopqrstuvwxyz0123456789", 999),
+                    (1, lambda x: x in "abcdefghijklmnopqrstuvwxyz0123456789", 1),
+                    (1, lambda x: x not in "abcdefghijklmnopqrstuvwxyz0123456789", 999),
                 },
                 initial_state=0,
                 final_states={1},
@@ -92,8 +89,8 @@ def build_patterns():
             DeterministicFiniteAutomata(
                 transactions={
                     (0, lambda x: x == "(", 1),
+                    (0, lambda x: x != "(", 999),
                     (1, lambda x: True, 999),
-                    (0, lambda x: x != "(", 999)
                 },
                 initial_state=0,
                 final_states={1},
@@ -105,7 +102,7 @@ def build_patterns():
                 transactions={
                     (0, lambda x: x == ")", 1),
                     (1, lambda x: True, 999),
-                    (0, lambda x: x != ")", 999)
+                    (0, lambda x: x != ")", 999),
                 },
                 initial_state=0,
                 final_states={1},
@@ -116,6 +113,7 @@ def build_patterns():
             DeterministicFiniteAutomata(
                 transactions={
                     (0, lambda x: x == "\\", 1),
+                    (0, lambda x: x != "\\", 999),
                     (1, lambda x: x == "n", 2),
                     (2, lambda x: x == "e", 3),
                     (3, lambda x: x == "g", 4),
@@ -130,6 +128,7 @@ def build_patterns():
             DeterministicFiniteAutomata(
                 transactions={
                     (0, lambda x: x == "\\", 1),
+                    (0, lambda x: x != "\\", 999),
                     # wedge
                     (1, lambda x: x == "w", 2),
                     (2, lambda x: x == "e", 3),
@@ -153,7 +152,7 @@ def build_patterns():
                     (16, lambda x: x == "r", 17),
                     (17, lambda x: x == "o", 18),
                     (18, lambda x: x == "w", 19),
-                    (20, lambda x: True, 999),
+                    (19, lambda x: True, 999),
                     # leftrightarrow
                     (1, lambda x: x == "l", 20),
                     (20, lambda x: x == "e", 21),
@@ -185,13 +184,16 @@ class LexicalAnalyser:
         self.patterns = build_patterns()
         self.content = content
         self.symbols = list(content)
-        self.character_position = 0
+        self.next_character_position = 0
 
     @property
     def end_of_file(self):
-        return self.character_position + 2 == len(self.content)
+        return self.content[self.next_character_position] == "\n"
 
     def get_next_token(self) -> tuple[Lexeme, str] | None:
+        if self.peek() == " ":
+            self.next_character()
+
         word = ""
         while not self.end_of_file:
             symbol = self.next_character()
@@ -200,18 +202,24 @@ class LexicalAnalyser:
                 dfa = pattern[1]
                 dfa.execute(symbol)
                 if dfa.in_final_state:
+                    while dfa.in_final_state and not self.end_of_file:
+                        dfa.execute(self.peek())
+                        if dfa.in_final_state:
+                            symbol = self.next_character()
+                            word += symbol
                     self.reset_dfas()
-                    return pattern[0], word.rstrip()
+                    return pattern[0], word
         else:
             return None
 
     def next_character(self) -> str:
-        char = self.symbols[self.character_position]
-        self.character_position += 1
+        char = self.symbols[self.next_character_position]
+        self.next_character_position += 1
         return char.lower()
 
     def peek(self) -> str:
-        return self.symbols[self.character_position + 1]
+        char = self.symbols[self.next_character_position]
+        return char.lower()
 
     def reset_dfas(self):
         for pattern in self.patterns:
