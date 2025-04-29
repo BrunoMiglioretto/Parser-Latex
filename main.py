@@ -212,6 +212,29 @@ class LexicalAnalyser:
         else:
             return None
 
+
+    def peek_next_token(self) -> tuple[Lexeme, str] | None:
+        if self.peek() == " ":
+            self.next_character()
+
+        word = ""
+        while not self.end_of_file:
+            symbol = self.next_character()
+            word += symbol
+            for pattern in self.patterns:
+                dfa = pattern[1]
+                dfa.execute(symbol)
+                if dfa.in_final_state:
+                    while dfa.in_final_state and not self.end_of_file:
+                        dfa.execute(self.peek())
+                        if dfa.in_final_state:
+                            symbol = self.next_character()
+                            word += symbol
+                    self.reset_dfas()
+                    return pattern[0], word
+        else:
+            return None
+
     def next_character(self) -> str:
         char = self.symbols[self.next_character_position]
         self.next_character_position += 1
@@ -226,20 +249,106 @@ class LexicalAnalyser:
             pattern[1].reset()
 
 
+class Rule(Enum):
+    FORMULA = 0
+    CONSTANT = 1
+    PROPOSITION = 2
+    UNARY_FORMULA = 3
+    BINARY_FORMULA = 4
+    OPEN_PARENTHESIS = 5
+    CLOSE_PARENTHESIS = 6
+    UNARY_OPERATOR = 7
+    BINARY_OPERATOR = 8
+
+
+class Node:
+    def __init__(self, type: Rule, value, children=[]):
+        self.type = type
+        self.value = value
+        self.children = children
+
+
+class Parser:
+    def __init__(self, scanner: LexicalAnalyser):
+        self.scanner = scanner
+
+    def parse(self) -> Node:
+        root = Node(type=Rule.FORMULA, value=None)
+
+        token = self.scanner.peek_next_token()
+        print(token[0])
+        if token[0] == Lexeme.CONSTANT:
+            node = self.parse_constant()
+        elif token[0] == Lexeme.PROPOSITION:
+            node = self.parse_proposition()
+        elif token[0] == Lexeme.OPEN_PARENTHESIS:
+            node = self.parse_unary_formula()
+        elif token[0] == Lexeme.CLOSE_PARENTHESIS:
+            node = self.parse_binary_formula()
+        else:
+            raise Exception("Error")
+
+        root.children = [node]
+        return root
+
+    def parse_constant(self):
+        token = self.scanner.get_next_token()
+        return Node(type=Rule.CONSTANT, value=token[1])
+
+    def parse_proposition(self):
+        token = self.scanner.get_next_token()
+        return Node(type=Rule.PROPOSITION, value=token[1])
+
+    def parse_unary_formula(self):
+       return Node(type=Rule.FORMULA, value=None, children=[
+           self.parse_open_parenthesis(),
+           self.parse_unary_operator(),
+           self.parse(),
+           self.parse_close_parenthesis(),
+       ])
+
+    def parse_binary_formula(self):
+        return Node(type=Rule.FORMULA, value=None, children=[
+            self.parse_open_parenthesis(),
+            self.parse_binary_operator(),
+            self.parse(),
+            self.parse(),
+            self.parse_close_parenthesis(),
+        ])
+
+    def parse_open_parenthesis(self):
+        token = self.scanner.get_next_token()
+        return Node(type=Rule.OPEN_PARENTHESIS, value=token[1])
+
+    def parse_close_parenthesis(self):
+        token = self.scanner.get_next_token()
+        return Node(type=Rule.CLOSE_PARENTHESIS, value=token[1])
+
+    def parse_unary_operator(self):
+        token = self.scanner.get_next_token()
+        return Node(type=Rule.UNARY_OPERATOR, value=token[1])
+
+    def parse_binary_operator(self):
+        token = self.scanner.get_next_token()
+        return Node(type=Rule.BINARY_OPERATOR, value=token[1])
+
 with open("examples.txt") as f:
     example_count = f.readline()
     examples = f.readlines()
 
 for example in examples:
-    analyser = LexicalAnalyser(example)
+    scanner = LexicalAnalyser(example)
+    parser = Parser(scanner)
+    root_node = parser.parse()
 
-    while True:
-        token = analyser.get_next_token()
-        if token:
-            print(token)
-        else:
-            print("Fim")
-            break
+    for child in root_node.children:
+        print(child)
+        for c in child.children:
+            print(c)
 
+def children(node):
+    for child in node.children:
+        print(child)
+        children(child)
 
 

@@ -1,4 +1,2 @@
 3
-(2asdf true true \neg 2) \rightarrow (2 \wedge 3)
-\neg (1KJH \wedge 2)
-1 \leftrightarrow 2
+true
