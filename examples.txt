@@ -1,2 +1,5 @@
 3
 true
+1proposition
+(\neg true)
+(\leftrightarrow true 1proposition)

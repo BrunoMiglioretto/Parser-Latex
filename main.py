@@ -1,3 +1,4 @@
+import copy
 import logging
 from enum import Enum
 from typing import Any
@@ -212,28 +213,9 @@ class LexicalAnalyser:
         else:
             return None
 
-
     def peek_next_token(self) -> tuple[Lexeme, str] | None:
-        if self.peek() == " ":
-            self.next_character()
-
-        word = ""
-        while not self.end_of_file:
-            symbol = self.next_character()
-            word += symbol
-            for pattern in self.patterns:
-                dfa = pattern[1]
-                dfa.execute(symbol)
-                if dfa.in_final_state:
-                    while dfa.in_final_state and not self.end_of_file:
-                        dfa.execute(self.peek())
-                        if dfa.in_final_state:
-                            symbol = self.next_character()
-                            word += symbol
-                    self.reset_dfas()
-                    return pattern[0], word
-        else:
-            return None
+        s = copy.copy(self)
+        return s.get_next_token()
 
     def next_character(self) -> str:
         char = self.symbols[self.next_character_position]
@@ -267,6 +249,9 @@ class Node:
         self.value = value
         self.children = children
 
+    def __str__(self):
+        return f"{self.type}, {self.value}"
+
 
 class Parser:
     def __init__(self, scanner: LexicalAnalyser):
@@ -276,7 +261,6 @@ class Parser:
         root = Node(type=Rule.FORMULA, value=None)
 
         token = self.scanner.peek_next_token()
-        print(token[0])
         if token[0] == Lexeme.CONSTANT:
             node = self.parse_constant()
         elif token[0] == Lexeme.PROPOSITION:
@@ -336,19 +320,25 @@ with open("examples.txt") as f:
     example_count = f.readline()
     examples = f.readlines()
 
+
+
+def children(node, spaces=0):
+    print("  " * spaces + "(")
+    for child in node.children:
+        print("  " * (spaces + 1) + f"{child}")
+        if child.children:
+            children(child, spaces+1)
+    print("  " * spaces + ")")
+
 for example in examples:
     scanner = LexicalAnalyser(example)
     parser = Parser(scanner)
     root_node = parser.parse()
+    children(root_node)
 
-    for child in root_node.children:
-        print(child)
-        for c in child.children:
-            print(c)
+    print("---------")
 
-def children(node):
-    for child in node.children:
-        print(child)
-        children(child)
+
+
 
 
