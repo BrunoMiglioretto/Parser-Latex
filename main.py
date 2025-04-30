@@ -217,6 +217,12 @@ class LexicalAnalyser:
         s = copy.copy(self)
         return s.get_next_token()
 
+    def peek_peek_next_token(self):
+        s = copy.copy(self)
+        s.get_next_token()
+        s = copy.copy(s)
+        return s.get_next_token()
+
     def next_character(self) -> str:
         char = self.symbols[self.next_character_position]
         self.next_character_position += 1
@@ -261,13 +267,16 @@ class Parser:
         root = Node(type=Rule.FORMULA, value=None)
 
         token = self.scanner.peek_next_token()
+        print(token)
         if token[0] == Lexeme.CONSTANT:
             node = self.parse_constant()
         elif token[0] == Lexeme.PROPOSITION:
             node = self.parse_proposition()
         elif token[0] == Lexeme.OPEN_PARENTHESIS:
+          next_token = self.scanner.peek_peek_next_token()
+          if next_token[0] == Lexeme.UNARY_OPERATOR:
             node = self.parse_unary_formula()
-        elif token[0] == Lexeme.CLOSE_PARENTHESIS:
+          else:
             node = self.parse_binary_formula()
         else:
             raise Exception("Error")
