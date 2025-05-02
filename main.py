@@ -250,13 +250,50 @@ class Rule(Enum):
 
 
 class Node:
-    def __init__(self, type: Rule, value, children=[]):
-        self.type = type
-        self.value = value
-        self.children = children
+    def __init__(self):
+        pass
 
-    def __str__(self):
-        return f"{self.type}, {self.value}"
+
+class FormulaNode:
+    def __init__(self, child):
+        self.child = child
+
+
+class ConstantNode:
+    def __init__(self, value):
+        self.value = value
+
+
+class PropositionNode:
+    def __init__(self, value):
+        self.value = value
+
+
+class UnaryFormulaNode:
+    def __init__(self, value, child):
+        self.value = value
+        self.child = child
+
+
+class BinaryFormulaNode:
+    def __init__(self, value, left_child, right_child):
+        self.value = value
+        self.left_child = left_child
+        self.right_child = right_child
+
+
+"""
+FORMULA=CONSTANTE|PROPOSICAO|FORMULAUNARIA|FORMULABINARIA
+CONSTANTE=true|false.
+PROPOSICAO=[𝟎 − 𝟗][𝟎 − 𝟗𝒂 − 𝒛]∗
+FORMULAUNARIA=ABREPAREN OPERADORUNARIO FORMULA FECHAPAREN
+FORMULABINARIA=ABREPAREN OPERATORBINARIO FORMULA FORMULA FECHAPAREN
+ABREPAREN=(
+FECHAPAREN=)
+OPERATORUNARIO=\neg
+OPERATORBINARIO=\wedge|\vee|\rightarrow
+
+"""
 
 
 class Parser:
