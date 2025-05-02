@@ -1,5 +1,5 @@
+import sys
 import copy
-import logging
 from enum import Enum
 from typing import Any
 
@@ -174,7 +174,7 @@ def build_patterns():
                 initial_state=0,
                 final_states={6, 9, 19, 33},
             ),
-        )
+        ),
     ]
 
     return patterns
@@ -249,11 +249,6 @@ class Rule(Enum):
     BINARY_OPERATOR = 8
 
 
-class Node:
-    def __init__(self):
-        pass
-
-
 class FormulaNode:
     def __init__(self, child):
         self.child = child
@@ -270,121 +265,173 @@ class PropositionNode:
 
 
 class UnaryFormulaNode:
-    def __init__(self, value, child):
-        self.value = value
+    def __init__(self, child):
         self.child = child
 
 
+class NegationFormulaNode(UnaryFormulaNode):
+    def __init__(self, child):
+        super().__init__(child=child)
+
+
 class BinaryFormulaNode:
-    def __init__(self, value, left_child, right_child):
-        self.value = value
+    def __init__(self, left_child, right_child):
         self.left_child = left_child
         self.right_child = right_child
 
 
-"""
-FORMULA=CONSTANTE|PROPOSICAO|FORMULAUNARIA|FORMULABINARIA
-CONSTANTE=true|false.
-PROPOSICAO=[𝟎 − 𝟗][𝟎 − 𝟗𝒂 − 𝒛]∗
-FORMULAUNARIA=ABREPAREN OPERADORUNARIO FORMULA FECHAPAREN
-FORMULABINARIA=ABREPAREN OPERATORBINARIO FORMULA FORMULA FECHAPAREN
-ABREPAREN=(
-FECHAPAREN=)
-OPERATORUNARIO=\neg
-OPERATORBINARIO=\wedge|\vee|\rightarrow
+class AndFormulaNode(BinaryFormulaNode):
+    def __init__(self, left_child, right_child):
+        super().__init__(left_child=left_child, right_child=right_child)
 
-"""
+
+class OrFormulaNode(BinaryFormulaNode):
+    def __init__(self, left_child, right_child):
+        super().__init__(left_child=left_child, right_child=right_child)
+
+
+class ImpliesFormulaNode(BinaryFormulaNode):
+    def __init__(self, left_child, right_child):
+        super().__init__(left_child=left_child, right_child=right_child)
+
+
+class BiConditionalFormulaNode(BinaryFormulaNode):
+    def __init__(self, left_child, right_child):
+        super().__init__(left_child=left_child, right_child=right_child)
+
+
+class OpenParenthesisNode:
+    def __init__(self):
+        pass
+
+
+class CloseParenthesisNode:
+    def __init__(self):
+        pass
+
+
+class UnaryOperatorNode:
+    def __init__(self):
+        pass
+
+
+class NegationOperatorNode(UnaryOperatorNode):
+    pass
+
+
+class BinaryOperatorNode:
+    def __init__(self):
+        pass
+
+
+class AndOperatorNode(BinaryOperatorNode):
+    pass
+
+
+class OrOperatorNode(BinaryOperatorNode):
+    pass
+
+
+class ImpliesOperatorNode(BinaryOperatorNode):
+    pass
+
+
+class BiConditionalOperatorNode(BinaryOperatorNode):
+    pass
 
 
 class Parser:
     def __init__(self, scanner: LexicalAnalyser):
         self.scanner = scanner
 
-    def parse(self) -> Node:
-        root = Node(type=Rule.FORMULA, value=None)
-
+    def parse(self) -> FormulaNode:
         token = self.scanner.peek_next_token()
-        print(token)
-        if token[0] == Lexeme.CONSTANT:
-            node = self.parse_constant()
-        elif token[0] == Lexeme.PROPOSITION:
-            node = self.parse_proposition()
-        elif token[0] == Lexeme.OPEN_PARENTHESIS:
-          next_token = self.scanner.peek_peek_next_token()
-          if next_token[0] == Lexeme.UNARY_OPERATOR:
-            node = self.parse_unary_formula()
-          else:
-            node = self.parse_binary_formula()
-        else:
-            raise Exception("Error")
 
-        root.children = [node]
+        if token[0] == Lexeme.CONSTANT:
+            child_node = self.parse_constant()
+        elif token[0] == Lexeme.PROPOSITION:
+            child_node = self.parse_proposition()
+        elif token[0] == Lexeme.OPEN_PARENTHESIS:
+            next_token = self.scanner.peek_peek_next_token()
+            if next_token[0] == Lexeme.UNARY_OPERATOR:
+                child_node = self.parse_unary_formula()
+            else:
+                child_node = self.parse_binary_formula()
+        else:
+            raise Exception("Token is not part of a formula")
+
+        root = FormulaNode(child=child_node)
         return root
 
     def parse_constant(self):
         token = self.scanner.get_next_token()
-        return Node(type=Rule.CONSTANT, value=token[1])
+        return ConstantNode(value=token[1])
 
     def parse_proposition(self):
         token = self.scanner.get_next_token()
-        return Node(type=Rule.PROPOSITION, value=token[1])
+        return PropositionNode(value=token[1])
 
     def parse_unary_formula(self):
-       return Node(type=Rule.FORMULA, value=None, children=[
-           self.parse_open_parenthesis(),
-           self.parse_unary_operator(),
-           self.parse(),
-           self.parse_close_parenthesis(),
-       ])
+        self.parse_open_parenthesis()
+        self.parse_unary_operator()
+        formula = self.parse()
+        self.parse_close_parenthesis()
+
+        return NegationFormulaNode(child=formula)
 
     def parse_binary_formula(self):
-        return Node(type=Rule.FORMULA, value=None, children=[
-            self.parse_open_parenthesis(),
-            self.parse_binary_operator(),
-            self.parse(),
-            self.parse(),
-            self.parse_close_parenthesis(),
-        ])
+        self.parse_open_parenthesis()
+        binary_operator = self.parse_binary_operator()
+        left_child = self.parse()
+        right_child = self.parse()
+        self.parse_close_parenthesis()
+
+        if AndOperatorNode == type(binary_operator):
+            return AndFormulaNode(left_child=left_child, right_child=right_child)
+        elif OrOperatorNode == type(binary_operator):
+            return OrFormulaNode(left_child=left_child, right_child=right_child)
+        elif ImpliesOperatorNode == type(binary_operator):
+            return ImpliesFormulaNode(left_child=left_child, right_child=right_child)
+        elif BiConditionalOperatorNode == type(binary_operator):
+            return BiConditionalFormulaNode(
+                left_child=left_child, right_child=right_child
+            )
 
     def parse_open_parenthesis(self):
-        token = self.scanner.get_next_token()
-        return Node(type=Rule.OPEN_PARENTHESIS, value=token[1])
+        self.scanner.get_next_token()
+        return OpenParenthesisNode()
 
     def parse_close_parenthesis(self):
-        token = self.scanner.get_next_token()
-        return Node(type=Rule.CLOSE_PARENTHESIS, value=token[1])
+        self.scanner.get_next_token()
+        return CloseParenthesisNode()
 
     def parse_unary_operator(self):
-        token = self.scanner.get_next_token()
-        return Node(type=Rule.UNARY_OPERATOR, value=token[1])
+        self.scanner.get_next_token()
+        return NegationOperatorNode()
 
     def parse_binary_operator(self):
         token = self.scanner.get_next_token()
-        return Node(type=Rule.BINARY_OPERATOR, value=token[1])
+        if token[1] == r"\wedge":
+            return AndOperatorNode()
+        elif token[1] == r"\vee":
+            return OrOperatorNode()
+        elif token[1] == r"\rightarrow":
+            return ImpliesOperatorNode()
+        elif token[1] == r"\leftrightarrow":
+            return BiConditionalOperatorNode()
+        raise Exception("error")
 
-with open("examples.txt") as f:
+
+if len(sys.argv) > 1:
+    filename = sys.argv[1]
+else:
+    filename = "examples.txt"
+
+with open(filename) as f:
     example_count = f.readline()
     examples = f.readlines()
-
-
-
-def children(node, spaces=0):
-    print("  " * spaces + "(")
-    for child in node.children:
-        print("  " * (spaces + 1) + f"{child}")
-        if child.children:
-            children(child, spaces+1)
-    print("  " * spaces + ")")
 
 for example in examples:
     scanner = LexicalAnalyser(example)
     parser = Parser(scanner)
     root_node = parser.parse()
-    children(root_node)
-
-    print("---------")
-
-
-
-
-
