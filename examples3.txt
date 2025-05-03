@@ -1,0 +1,10 @@
+9
+(\neg false)
+(\leftrightarrow false 1proposition)
+(\leftrightarrow (\neg (\leftrightarrow false 1proposition)) 1proposition)
+(\leftrightarrow 1proposition (\neg true))
+(\leftrightarrow (\neg 1proposition) (\neg false))
+(\leftrightarrow (\neg (\leftrightarrow 1proposition 2proposition)) 1proposition)
+(\neg (\leftrightarrow (\neg true) 1proposition))
+true false \leftrightarrow
+false true \leftrightarrow

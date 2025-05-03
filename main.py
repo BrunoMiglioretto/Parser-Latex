@@ -355,8 +355,10 @@ class Parser:
             next_token = self.scanner.peek_peek_next_token()
             if next_token[0] == Lexeme.UNARY_OPERATOR:
                 child_node = self.parse_unary_formula()
-            else:
+            elif next_token[0] == Lexeme.BINARY_OPERATOR:
                 child_node = self.parse_binary_formula()
+            else:
+                Exception()
         else:
             raise Exception()
 
@@ -365,9 +367,9 @@ class Parser:
 
     def parse_constant(self):
         token = self.scanner.get_next_token()
-        if token[0] == Lexeme.CONSTANT:
-            return ConstantNode(value=token[1])
-        raise Exception()
+        assert token[0] == Lexeme.CONSTANT
+
+        return ConstantNode(value=token[1])
 
     def parse_proposition(self):
         token = self.scanner.get_next_token()
@@ -376,27 +378,36 @@ class Parser:
         return PropositionNode(value=token[1])
 
     def parse_unary_formula(self):
-        self.parse_open_parenthesis()
-        self.parse_unary_operator()
+        assert type(self.parse_open_parenthesis()) == OpenParenthesisNode
+
+        assert isinstance(self.parse_unary_operator(), UnaryOperatorNode)
         formula = self.parse()
-        self.parse_close_parenthesis()
+        assert type(formula) == FormulaNode
+        assert type(self.parse_close_parenthesis()) == CloseParenthesisNode
 
         return NegationFormulaNode(child=formula)
 
     def parse_binary_formula(self):
-        self.parse_open_parenthesis()
-        binary_operator = self.parse_binary_operator()
-        left_child = self.parse()
-        right_child = self.parse()
-        self.parse_close_parenthesis()
+        assert isinstance(self.parse_open_parenthesis(), OpenParenthesisNode)
 
-        if AndOperatorNode == type(binary_operator):
+        binary_operator = self.parse_binary_operator()
+        assert isinstance(binary_operator, BinaryOperatorNode)
+
+        left_child = self.parse()
+        assert isinstance(left_child, FormulaNode)
+
+        right_child = self.parse()
+        assert isinstance(right_child, FormulaNode)
+
+        assert isinstance(self.parse_close_parenthesis(), CloseParenthesisNode)
+
+        if isinstance(binary_operator, AndOperatorNode):
             return AndFormulaNode(left_child=left_child, right_child=right_child)
-        elif OrOperatorNode == type(binary_operator):
+        elif isinstance(binary_operator, OrOperatorNode):
             return OrFormulaNode(left_child=left_child, right_child=right_child)
-        elif ImpliesOperatorNode == type(binary_operator):
+        elif isinstance(binary_operator, ImpliesOperatorNode):
             return ImpliesFormulaNode(left_child=left_child, right_child=right_child)
-        elif BiConditionalOperatorNode == type(binary_operator):
+        elif isinstance(binary_operator, BiConditionalOperatorNode):
             return BiConditionalFormulaNode(
                 left_child=left_child, right_child=right_child
             )
@@ -404,21 +415,21 @@ class Parser:
 
     def parse_open_parenthesis(self):
         token = self.scanner.get_next_token()
-        if token[0] == Lexeme.OPEN_PARENTHESIS:
-            return OpenParenthesisNode()
-        raise Exception()
+        assert token[0] == Lexeme.OPEN_PARENTHESIS
+
+        return OpenParenthesisNode()
 
     def parse_close_parenthesis(self):
         token = self.scanner.get_next_token()
-        if token[0] == Lexeme.CLOSE_PARENTHESIS:
-            return CloseParenthesisNode()
-        raise Exception()
+        assert token[0] == Lexeme.CLOSE_PARENTHESIS
+
+        return CloseParenthesisNode()
 
     def parse_unary_operator(self):
         token = self.scanner.get_next_token()
-        if token[0] == Lexeme.UNARY_OPERATOR:
-            return NegationOperatorNode()
-        raise Exception()
+        assert token[0] == Lexeme.UNARY_OPERATOR
+
+        return NegationOperatorNode()
 
     def parse_binary_operator(self):
         token = self.scanner.get_next_token()
@@ -443,6 +454,13 @@ with open(filename) as f:
     examples = f.readlines()
 
 for example in examples:
-    scanner = LexicalAnalyser(example)
-    parser = Parser(scanner)
-    root_node = parser.parse()
+    try:
+        scanner = LexicalAnalyser(example)
+        parser = Parser(scanner)
+        root_node = parser.parse()
+
+        assert parser.scanner.end_of_file
+
+        print("Válido")
+    except Exception as e:
+        print("Inválido")

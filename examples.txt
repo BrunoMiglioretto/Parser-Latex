@@ -1,6 +1,7 @@
-3
-true
-1proposition
+6
 (\neg true)
 (\leftrightarrow true 1proposition)
+(\leftrightarrow (\neg (\leftrightarrow true 1proposition)) 1proposition)
 true true \leftrightarrow
+true
+1proposition
