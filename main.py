@@ -1,3 +1,13 @@
+"""
+Alunos:
+Bruno Assis Miglioretto
+Nicolas Lamback de Paulo
+Nicolas Rafael da Silveira Zamprogno
+Vitor Solieri do Vale
+
+"""
+
+
 import sys
 import copy
 from enum import Enum
