@@ -358,17 +358,21 @@ class Parser:
             else:
                 child_node = self.parse_binary_formula()
         else:
-            raise Exception("Token is not part of a formula")
+            raise Exception()
 
         root = FormulaNode(child=child_node)
         return root
 
     def parse_constant(self):
         token = self.scanner.get_next_token()
-        return ConstantNode(value=token[1])
+        if token[0] == Lexeme.CONSTANT:
+            return ConstantNode(value=token[1])
+        raise Exception()
 
     def parse_proposition(self):
         token = self.scanner.get_next_token()
+        assert token[0] == Lexeme.PROPOSITION
+
         return PropositionNode(value=token[1])
 
     def parse_unary_formula(self):
@@ -396,18 +400,25 @@ class Parser:
             return BiConditionalFormulaNode(
                 left_child=left_child, right_child=right_child
             )
+        raise Exception()
 
     def parse_open_parenthesis(self):
-        self.scanner.get_next_token()
-        return OpenParenthesisNode()
+        token = self.scanner.get_next_token()
+        if token[0] == Lexeme.OPEN_PARENTHESIS:
+            return OpenParenthesisNode()
+        raise Exception()
 
     def parse_close_parenthesis(self):
-        self.scanner.get_next_token()
-        return CloseParenthesisNode()
+        token = self.scanner.get_next_token()
+        if token[0] == Lexeme.CLOSE_PARENTHESIS:
+            return CloseParenthesisNode()
+        raise Exception()
 
     def parse_unary_operator(self):
-        self.scanner.get_next_token()
-        return NegationOperatorNode()
+        token = self.scanner.get_next_token()
+        if token[0] == Lexeme.UNARY_OPERATOR:
+            return NegationOperatorNode()
+        raise Exception()
 
     def parse_binary_operator(self):
         token = self.scanner.get_next_token()
@@ -419,7 +430,7 @@ class Parser:
             return ImpliesOperatorNode()
         elif token[1] == r"\leftrightarrow":
             return BiConditionalOperatorNode()
-        raise Exception("error")
+        raise Exception()
 
 
 if len(sys.argv) > 1:
